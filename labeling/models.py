@@ -68,15 +68,19 @@ class Box(Shape):
         return ((near_left or near_right) and inside_y) or ((near_top or near_bottom) and inside_x)
 
     def to_dict(self):
+        color = self.color
+        if isinstance(color, QColor):
+            color = (color.red(), color.green(), color.blue())
+
         return {
             "type": "box",
             "label": self.label,
             "id": self.shape_id,
-            "color": [self.color.red(), self.color.green(), self.color.blue()],
             "x1": self.rect.left(),
             "y1": self.rect.top(),
             "x2": self.rect.right(),
-            "y2": self.rect.bottom()
+            "y2": self.rect.bottom(),
+            "color": color
         }
 
     @classmethod

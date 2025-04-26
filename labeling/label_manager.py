@@ -38,7 +38,8 @@ class LabelManager:
     def clear(self):
         self.frames = {}
 
-    def save_project(self, path: str):
+
+    def save_project(self, path="data/output/project.json"):
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         frames_data = []
@@ -48,8 +49,40 @@ class LabelManager:
                 "shapes": [shape.to_dict() for shape in shapes]
             })
 
+        save_data = {
+            "frames": frames_data,
+            "counters": self.label_counters  # <<< einfach dumpen
+        }
+
         with open(path, "w") as f:
-            json.dump({"frames": frames_data}, f, indent=4)
+            json.dump(save_data, f, indent=4)
+
+    def load_project(self, path="data/output/project.json"):
+        if not os.path.exists(path):
+            print(f"ℹ️ Keine Projektdatei gefunden unter {path}. Starte leer.")
+            return
+
+        with open(path, "r") as f:
+            data = json.load(f)
+
+        self.frames.clear()
+        self.label_counters.clear()
+
+        for frame_data in data.get("frames", []):
+            frame_idx = frame_data["frame_index"]
+            shapes = []
+            for shape_data in frame_data["shapes"]:
+                if shape_data.get("type") == "box":
+                    shape = Box.from_dict(shape_data)
+                    shapes.append(shape)
+
+            self.frames[frame_idx] = shapes
+
+        # Counters wiederherstellen
+        self.label_counters.update(data.get("counters", {}))
+
+        print(f"✅ Projekt geladen aus {path}")
+
 
     def find_shape_border_hit(self, frame_index: int, pos, tolerance=5):
         shapes = self.get_shapes(frame_index)
@@ -60,19 +93,3 @@ class LabelManager:
 
 
 
-    def load_project(self, path: str):
-        if not os.path.exists(path):
-            return
-
-        self.clear()
-
-        with open(path, "r") as f:
-            data = json.load(f)
-
-        for frame in data["frames"]:
-            frame_idx = frame["frame_index"]
-            self.frames[frame_idx] = []
-            for shape_data in frame["shapes"]:
-                if shape_data["type"] == "box":
-                    self.frames[frame_idx].append(Box.from_dict(shape_data))
-                # später: elif für circle / polygon

@@ -29,12 +29,12 @@ def calculate_color(base_color, shape_id):
     return (r, g, b)
 
 class LabelDrawer(QMainWindow):
-    def __init__(self):
+    def __init__(self, label_manager):
         super().__init__()
         self.setWindowTitle("BoundingBox Drawer")
         self.setGeometry(100, 100, 800, 600)
 
-        self.label_manager = LabelManager()
+        self.label_manager = label_manager
         self.selection_manager = SelectionManager()
 
         # UI State
@@ -128,12 +128,14 @@ class Canvas(QLabel):
                 self.parent.selection_manager.stop_resizing()
                 self.blink_timer.stop()  # <<< Timer stoppen
                 self.blink_state = True  # <<< wieder sichtbar machen
+                self.parent.label_manager.save_project() 
                 self.update()
                 return
 
             if self.parent.selection_manager.moving:
                 self.parent.selection_manager.clear_selection()
                 self.setCursor(Qt.ArrowCursor)  # <<< CURSOR ZURÜCK
+                self.parent.label_manager.save_project()
                 self.update()
                 return
 
@@ -149,6 +151,7 @@ class Canvas(QLabel):
                 self.parent.label_manager.add_shape(self.parent.current_frame, box)
 
                 self.parent.start_pos = None
+                self.parent.label_manager.save_project()
                 self.update()
 
     def check_hovered_corner(self, pos, tolerance=10):
@@ -195,13 +198,17 @@ class Canvas(QLabel):
         for shape in shapes:
             active = self.parent.selection_manager.is_shape_active(shape)
             hovered = self.parent.selection_manager.is_shape_hovered(shape)
+
+            # Zuerst normale Box zeichnen
             shape.draw(painter, active=active, hovered=hovered)
 
+            # Dann ggf. die Resize-Punkte
             if active or hovered:
                 corner_points = shape.get_corner_points()
                 for idx, point in enumerate(corner_points):
+                    painter.save()  # <<< Save aktuelles Pen/Brush-Set
+
                     if idx == self.parent.selection_manager.hovered_corner_index and self.parent.selection_manager.resizing:
-                        # Blinkeffekt
                         if self.blink_state:
                             painter.setBrush(QColor(0, 0, 0))
                         else:
@@ -212,11 +219,14 @@ class Canvas(QLabel):
                     painter.setPen(Qt.NoPen)
                     painter.drawEllipse(point, 5, 5)
 
+                    painter.restore()  # <<< Restore Pen/Brush sauber zurück
+
         if self.parent.start_pos:
             mouse_pos = self.mapFromGlobal(self.cursor().pos())
             rect = QRect(self.parent.start_pos, mouse_pos).normalized()
             pen = QPen(QColor(128, 128, 128), 1, Qt.DashLine)
             painter.setPen(pen)
+            painter.setBrush(Qt.NoBrush)  # <<< wichtig: keine Füllung
             painter.drawRect(rect)
 
     # gehört das hier her^^ ?
