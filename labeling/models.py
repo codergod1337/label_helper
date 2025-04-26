@@ -24,11 +24,6 @@ class Box(Shape):
         super().__init__(label, shape_id, color)
         self.rect = rect
 
-    #def draw(self, painter: QPainter):
-    #    painter.setPen(QColor(self.color))
-    #    painter.drawRect(self.rect)
-    #    painter.drawText(self.rect.topLeft() + QPoint(5, -5), f"{self.label} #{self.shape_id}")
-
     def draw(self, painter: QPainter, active=False, hovered=False):
         if active:
             # Aktiv → gestrichelt und halbtransparent rot
@@ -50,6 +45,16 @@ class Box(Shape):
 
         if not active:
             painter.drawText(self.rect.topLeft() + QPoint(5, -5), f"{self.label} #{self.shape_id}")
+
+    # nach hover -> scale points
+    def get_corner_points(self):
+        rect = self.rect
+        return [
+            rect.topLeft(),
+            rect.topRight(),
+            rect.bottomLeft(),
+            rect.bottomRight()
+        ]
 
 
     def is_point_near_border(self, point, tolerance=5):

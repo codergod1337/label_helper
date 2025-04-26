@@ -163,12 +163,22 @@ class Canvas(QLabel):
             hovered = self.parent.selection_manager.is_shape_hovered(shape)
             shape.draw(painter, active=active, hovered=hovered)
 
+            if active or hovered:
+                for point in shape.get_corner_points():
+                    painter.setBrush(QColor(0, 0, 0))
+                    painter.setPen(Qt.NoPen)
+                    painter.drawEllipse(point, 5, 5)  # Radius 5px
+
         if self.parent.start_pos:
             mouse_pos = self.mapFromGlobal(self.cursor().pos())
             rect = QRect(self.parent.start_pos, mouse_pos).normalized()
             pen = QPen(QColor(128, 128, 128), 1, Qt.DashLine)
             painter.setPen(pen)
             painter.drawRect(rect)
+
+    # gehört das hier her^^ ?
+    def map_to_frame_coordinates(self, pos):
+        return pos
 
 def main():
     app = QApplication(sys.argv)
