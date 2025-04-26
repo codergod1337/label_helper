@@ -3,10 +3,13 @@
 import json
 import os
 from labeling.models import Box
+from PyQt5.QtGui import QColor
 
 class LabelManager:
     def __init__(self):
         self.frames = {}  # frame_index -> List[Shapes]
+        self.label_colors = {}  # {label: QColor}
+        self.label_counters = {}  # {label: int}
 
     def add_shape(self, frame_index: int, shape):
         if frame_index not in self.frames:
@@ -15,6 +18,22 @@ class LabelManager:
 
     def get_shapes(self, frame_index: int):
         return self.frames.get(frame_index, [])
+
+    def get_label_color(self, label):
+        if label not in self.label_colors:
+            # Erzeuge eine neue zufällige Farbe wenn Label neu ist
+            import random
+            color = QColor(random.randint(50, 255), random.randint(50, 255), random.randint(50, 255))
+            self.label_colors[label] = color
+        return self.label_colors[label]
+
+    def get_next_id_for_label(self, label):
+        if label not in self.label_counters:
+            self.label_counters[label] = 1
+        else:
+            self.label_counters[label] += 1
+        return self.label_counters[label]
+
 
     def clear(self):
         self.frames = {}
