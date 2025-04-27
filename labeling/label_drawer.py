@@ -129,18 +129,24 @@ class Canvas(QLabel):
                 shape = self.parent.selection_manager.active_shape
                 if shape and shape.pending_delete:
                     self.parent.label_manager.delete_shape(self.parent.current_frame, shape)
+                    
+                    # <<< NEU: SelectionManager aufräumen
+                    self.parent.selection_manager.stop_resizing()
                     self.parent.selection_manager.clear_selection()
+
                     self.blink_timer.stop()
                     self.blink_state = True
                     self.parent.label_manager.save_project()
                     self.update()
                     return
-                self.parent.selection_manager.stop_resizing()
-                self.blink_timer.stop()
-                self.blink_state = True
-                self.parent.label_manager.save_project()
-                self.update()
-                return
+                else:
+                    # Normal: Resize beenden
+                    self.parent.selection_manager.stop_resizing()
+                    self.blink_timer.stop()
+                    self.blink_state = True
+                    self.parent.label_manager.save_project()
+                    self.update()
+                    return
             
             if self.parent.selection_manager.moving:
                 shape = self.parent.selection_manager.active_shape
