@@ -1,13 +1,15 @@
 # labeling/selection_manager.py - Verwaltung von aktiver Auswahl und Interaktionen
 
 class SelectionManager:
-    def __init__(self):
+    def __init__(self, parent):
+        self.parent = parent
         self.active_shape = None
         self.hovered_shape = None
         self.moving = False
         self.hovered_corner_index = None  # 0-3 wenn über Ecke, sonst None
         self.resizing = False
         self.last_mouse_pos = None
+        self.resize_corner = None
 
     def select_shape(self, shape, mouse_pos):
         self.active_shape = shape
@@ -32,6 +34,10 @@ class SelectionManager:
         self.resizing = False
         self.active_shape = None
         self.hovered_corner_index = None
+
+    def start_moving(self, shape):
+        self.active_shape = shape
+        self.moving = True    
 
     def move_active_shape(self, new_mouse_pos):
         if not self.active_shape or not self.moving:
@@ -86,3 +92,11 @@ class SelectionManager:
             rect.setHeight(max(rect.height(), min_size))
 
         self.active_shape.rect = rect
+    
+    def check_pending_delete(self):
+        if not self.active_shape:
+            return
+
+        frame_rect = self.parent.canvas.rect()  # Größe der Leinwand
+        inside = all(frame_rect.contains(corner) for corner in self.active_shape.get_corner_points())
+        self.active_shape.pending_delete = not inside

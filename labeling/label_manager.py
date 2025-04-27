@@ -90,6 +90,13 @@ class LabelManager:
             if hasattr(shape, "is_point_near_border") and shape.is_point_near_border(pos, tolerance):
                 return shape
         return None
+    
+    def delete_shape(self, frame_idx, shape):
+        if frame_idx not in self.frames:
+            return
+
+        if shape in self.frames[frame_idx]:
+            self.frames[frame_idx].remove(shape)
 
 
 

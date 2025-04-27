@@ -23,6 +23,7 @@ class Box(Shape):
     def __init__(self, rect: QRect, label: str, shape_id: int, color: tuple):
         super().__init__(label, shape_id, color)
         self.rect = rect
+        self.pending_delete = False
 
     def draw(self, painter: QPainter, active=False, hovered=False):
         if active:
@@ -87,7 +88,9 @@ class Box(Shape):
     def from_dict(cls, data):
         rect = QRect(data["x1"], data["y1"], data["x2"] - data["x1"], data["y2"] - data["y1"])
         color = tuple(data["color"])
-        return cls(rect, data["label"], data["id"], color)
+        box = cls(rect, data["label"], data["id"], color)
+        box.pending_delete = False  
+        return box
 
 class Circle(Shape):
     pass  # Vorbereitung für später

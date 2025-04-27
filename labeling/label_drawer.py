@@ -35,7 +35,7 @@ class LabelDrawer(QMainWindow):
         self.setGeometry(100, 100, 800, 600)
 
         self.label_manager = label_manager
-        self.selection_manager = SelectionManager()
+        self.selection_manager = SelectionManager(self)
 
         # UI State
         self.labels = list(LABEL_COLORS.keys())
@@ -84,6 +84,7 @@ class Canvas(QLabel):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
+        self.setMouseTracking(True)
 
         # Resize Corner BLink!
         self.blink_timer = QTimer()
@@ -92,7 +93,7 @@ class Canvas(QLabel):
         self.blink_interval_ms = 100  # alle 100ms togglen
 
         self.setStyleSheet("background-color: #aaaaaa;")
-        self.setMouseTracking(True)
+        
 
     def toggle_blink(self):
         self.blink_state = not self.blink_state
@@ -125,16 +126,33 @@ class Canvas(QLabel):
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             if self.parent.selection_manager.resizing:
+                shape = self.parent.selection_manager.active_shape
+                if shape and shape.pending_delete:
+                    self.parent.label_manager.delete_shape(self.parent.current_frame, shape)
+                    self.parent.selection_manager.clear_selection()
+                    self.blink_timer.stop()
+                    self.blink_state = True
+                    self.parent.label_manager.save_project()
+                    self.update()
+                    return
                 self.parent.selection_manager.stop_resizing()
-                self.blink_timer.stop()  # <<< Timer stoppen
-                self.blink_state = True  # <<< wieder sichtbar machen
-                self.parent.label_manager.save_project() 
+                self.blink_timer.stop()
+                self.blink_state = True
+                self.parent.label_manager.save_project()
                 self.update()
                 return
-
+            
             if self.parent.selection_manager.moving:
+                shape = self.parent.selection_manager.active_shape
+                if shape and shape.pending_delete:
+                    self.parent.label_manager.delete_shape(self.parent.current_frame, shape)
+                    self.parent.selection_manager.clear_selection()
+                    self.setCursor(Qt.ArrowCursor)
+                    self.parent.label_manager.save_project()
+                    self.update()
+                    return
                 self.parent.selection_manager.clear_selection()
-                self.setCursor(Qt.ArrowCursor)  # <<< CURSOR ZURÜCK
+                self.setCursor(Qt.ArrowCursor)
                 self.parent.label_manager.save_project()
                 self.update()
                 return
@@ -170,11 +188,15 @@ class Canvas(QLabel):
 
         if self.parent.selection_manager.resizing:
             self.parent.selection_manager.move_resize(event.pos())
+            # >>> Hier löschen prüfen:
+            self.parent.selection_manager.check_pending_delete()
             self.update()
             return
 
         if self.parent.selection_manager.moving:
             self.parent.selection_manager.move_active_shape(event.pos())
+            # >>> Hier löschen prüfen:
+            self.parent.selection_manager.check_pending_delete()
             self.update()
             return
 
@@ -200,7 +222,18 @@ class Canvas(QLabel):
             hovered = self.parent.selection_manager.is_shape_hovered(shape)
 
             # Zuerst normale Box zeichnen
-            shape.draw(painter, active=active, hovered=hovered)
+            #shape.draw(painter, active=active, hovered=hovered)
+
+            # Wenn Shape "pending delete" ist → eigenen Stil
+            if shape.pending_delete:
+                pen = QPen(QColor(255, 0, 0, 100))  # leicht rot, halbtransparent
+                pen.setWidth(2)
+                pen.setStyle(Qt.DashLine)
+                painter.setPen(pen)
+                painter.setBrush(Qt.NoBrush)
+                painter.drawRect(shape.rect)
+            else:
+                shape.draw(painter, active=active, hovered=hovered)
 
             # Dann ggf. die Resize-Punkte
             if active or hovered:
